@@ -373,37 +373,4 @@ if [ $DASD_FORCE -eq 0 ]; then
 
 fi # Second instance of if [ $DASD_FORCE -eq 0 ]
 
-if [ $DEBUG = "no" ]; then
-    RULES_DIR=/etc/udev/rules.d
-else
-    RULES_DIR=.
-fi
-
-RULES_FILE=51-dasd-${CCW_CHAN_ID}.rules
-
-if [ -d "$RULES_DIR" ]; then
-    if [ -f ${RULES_DIR}/${RULES_FILE} ]; then
-	rm -f ${RULES_DIR}/${RULES_FILE}
-    fi
-    remove_channel_for_cio "${CCW_CHAN_ID}"
-
-    if [ "$ONLINE" -eq "1" ]; then
-	add_channel_for_cio "${CCW_CHAN_ID}"
-	# Write a new hwcfg file
-	cat > ${RULES_DIR}/${RULES_FILE} <<EOF
-# Configure DASD device at ${CCW_CHAN_ID} (${DISCIPLINE} mode)
-ACTION=="add", SUBSYSTEM=="ccw", KERNEL=="${CCW_CHAN_ID}", IMPORT{program}="collect ${CCW_CHAN_ID} %k ${CCW_CHAN_ID} ${CCW_CHAN_NAME}"
-ACTION=="add", SUBSYSTEM=="drivers", KERNEL=="${CCW_CHAN_NAME}", IMPORT{program}="collect ${CCW_CHAN_ID} %k ${CCW_CHAN_ID} ${CCW_CHAN_NAME}"
-EOF
-	if [ "$USE_DIAG" -eq 1 ]; then
-	    cat >> ${RULES_DIR}/${RULES_FILE} <<EOF
-ACTION=="add", ENV{COLLECT_${CCW_CHAN_ID}}=="0", ATTR{[ccw/$CCW_CHAN_ID]use_diag}="1"
-EOF
-	fi
-	cat >> ${RULES_DIR}/${RULES_FILE} <<EOF
-ACTION=="add", ENV{COLLECT_${CCW_CHAN_ID}}=="0", ATTR{[ccw/$CCW_CHAN_ID]online}="1"
-EOF
-    fi
-fi
-
 exit $exitcode
