@@ -275,6 +275,8 @@ CCW_CHAN_ID=${_ccwgroup_dir##*/}
 
 read _online < $_ccwgroup_dir/online
 
+_opts=
+
 if [ "$ONLINE" -eq 1 ]; then
     # Check whether we need to do something
     # We do not check for the value of CCW_CHAN_MODE, since we
@@ -283,7 +285,7 @@ if [ "$ONLINE" -eq 1 ]; then
 	# Set the portname
 	if [ "$QETH_PORTNAME" ]; then
 	    mesg "(portname $QETH_PORTNAME) "
-	    chzdev $QETH_READ_CHAN $QETH_WRITE_CHAN $QETH_DATA_CHAN portname=$QETH_PORTNAME
+	    _opts="${_opts} portname=$QETH_PORTNAME"
 	    #echo "$QETH_PORTNAME" > $_ccwgroup_dir/portname
 	fi
 	# Activate Layer2 support
@@ -291,18 +293,16 @@ if [ "$ONLINE" -eq 1 ]; then
 	    if [ "$QETH_LAYER2_SUPPORT" = "1" ]; then
 		mesg "(Layer2) "
 		#echo 1 > $_ccwgroup_dir/layer2
-		chzdev $QETH_READ_CHAN $QETH_WRITE_CHAN $QETH_DATA_CHAN layer2=1
+		_opts="${_opts} layer2=1"
 	    else
-		chzdev $QETH_READ_CHAN $QETH_WRITE_CHAN $QETH_DATA_CHAN layer2=0
+		_opts="${_opts} layer2=0"
 	    fi
-	else
-	    QETH_LAYER2_SUPPORT=
 	fi
 	# Enable IP address takeover
 	if [ "$QETH_IPA_TAKEOVER" ]; then
 	    if [ "$QETH_IPA_TAKEOVER" = "1" ]; then
 		mesg "(IP takeover) "
-		chzdev $QETH_READ_CHAN $QETH_WRITE_CHAN $QETH_DATA_CHAN ipa_takeover/enable=$QETH_IPA_TAKEOVER
+		_opts="${_opts} ipa_takeover/enable=$QETH_IPA_TAKEOVER"
 	    fi
 	fi
 	# Relative port number
@@ -311,10 +311,8 @@ if [ "$ONLINE" -eq 1 ]; then
 	        mesg "(Port $QETH_PORTNO) "
 	        # This may fail, but trial and error is the only way to tell.
 	        #echo "$QETH_PORTNO" > $_ccwgroup_dir/portno
-		chzdev $QETH_READ_CHAN $QETH_WRITE_CHAN $QETH_DATA_CHAN portno=$QETH_PORTNO
+		_opts="${_opts} portno=$QETH_PORTNO"
 	    fi
-	else
-	    unset QETH_PORTNO
 	fi
 	# Set additional options
 	if [ "$QETH_OPTIONS" ]; then
@@ -332,10 +330,8 @@ if [ "$ONLINE" -eq 1 ]; then
 			    if [ -w "$_ccwgroup_dir/$opt_name" ]; then
 				mesg "($opt_name) "
 				#echo "$opt_val" > $_ccwgroup_dir/$opt_name
-				chzdev $QETH_READ_CHAN $QETH_WRITE_CHAN $QETH_DATA_CHAN opt_name=$opt_val
-				if [ $? -eq 0 ] ; then
-				    cur_opts="$cur_opts ${opt_name}=${opt_val}"
-				fi
+				### TODO: Verify if this really works ### 
+				_opts="${_opts} $opt_name=$opt_val"
 			    else
 	                        # Skip invalid options
 				debug_mesg "Invalid option $opt_name"
@@ -344,12 +340,10 @@ if [ "$ONLINE" -eq 1 ]; then
 			;;
 		esac
 	    done
-	    # Update options list
-	    QETH_OPTIONS="$cur_opts"
 	fi
 
-  #run chzdev
-  chzdev $QETH_READ_CHAN $QETH_WRITE_CHAN $QETH_DATA_CHAN online=1
+	#run chzdev
+	chzdev $QETH_READ_CHAN:$QETH_WRITE_CHAN:$QETH_DATA_CHAN online=1 ${_opts}
 	#echo "1" > $_ccwgroup_dir/online 2> /dev/null
         # Re-read device status
 	read _ccw_dev_status < $_ccwgroup_dir/online
@@ -365,7 +359,7 @@ else
         # Set the device offline
 	debug_mesg "Setting device offline"
 	#echo "$ONLINE" > $_ccwgroup_dir/online
-	chzdev $QETH_READ_CHAN $QETH_WRITE_CHAN $QETH_DATA_CHAN online=$ONLINE
+	chzdev $QETH_READ_CHAN:$QETH_WRITE_CHAN:$QETH_DATA_CHAN online=$ONLINE ${_opts}
 
         # Re-read to check whether we have succeeded
 	_online=$(cat $_ccwgroup_dir/online)
