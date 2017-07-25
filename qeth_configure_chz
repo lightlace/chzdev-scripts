@@ -283,7 +283,7 @@ if [ "$ONLINE" -eq 1 ]; then
 	# Set the portname
 	if [ "$QETH_PORTNAME" ]; then
 	    mesg "(portname $QETH_PORTNAME) "
-      chzdev $QETH_READ_CHAN $QETH_WRITE_CHAN $QETH_DATA_CHAN portname=$QETH_PORTNAME
+	    chzdev $QETH_READ_CHAN $QETH_WRITE_CHAN $QETH_DATA_CHAN portname=$QETH_PORTNAME
 	    #echo "$QETH_PORTNAME" > $_ccwgroup_dir/portname
 	fi
 	# Activate Layer2 support
@@ -291,7 +291,7 @@ if [ "$ONLINE" -eq 1 ]; then
 	    if [ "$QETH_LAYER2_SUPPORT" = "1" ]; then
 		mesg "(Layer2) "
 		#echo 1 > $_ccwgroup_dir/layer2
-    chzdev $QETH_READ_CHAN $QETH_WRITE_CHAN $QETH_DATA_CHAN layer2=1
+		chzdev $QETH_READ_CHAN $QETH_WRITE_CHAN $QETH_DATA_CHAN layer2=1
 	    else
 		chzdev $QETH_READ_CHAN $QETH_WRITE_CHAN $QETH_DATA_CHAN layer2=0
 	    fi
@@ -311,7 +311,7 @@ if [ "$ONLINE" -eq 1 ]; then
 	        mesg "(Port $QETH_PORTNO) "
 	        # This may fail, but trial and error is the only way to tell.
 	        #echo "$QETH_PORTNO" > $_ccwgroup_dir/portno
-          chzdev $QETH_READ_CHAN $QETH_WRITE_CHAN $QETH_DATA_CHAN portno=$QETH_PORTNO
+		chzdev $QETH_READ_CHAN $QETH_WRITE_CHAN $QETH_DATA_CHAN portno=$QETH_PORTNO
 	    fi
 	else
 	    unset QETH_PORTNO
@@ -332,7 +332,7 @@ if [ "$ONLINE" -eq 1 ]; then
 			    if [ -w "$_ccwgroup_dir/$opt_name" ]; then
 				mesg "($opt_name) "
 				#echo "$opt_val" > $_ccwgroup_dir/$opt_name
-        chzdev $QETH_READ_CHAN $QETH_WRITE_CHAN $QETH_DATA_CHAN opt_name=$opt_val
+				chzdev $QETH_READ_CHAN $QETH_WRITE_CHAN $QETH_DATA_CHAN opt_name=$opt_val
 				if [ $? -eq 0 ] ; then
 				    cur_opts="$cur_opts ${opt_name}=${opt_val}"
 				fi
@@ -365,7 +365,7 @@ else
         # Set the device offline
 	debug_mesg "Setting device offline"
 	#echo "$ONLINE" > $_ccwgroup_dir/online
-  chzdev $QETH_READ_CHAN $QETH_WRITE_CHAN $QETH_DATA_CHAN online=$ONLINE
+	chzdev $QETH_READ_CHAN $QETH_WRITE_CHAN $QETH_DATA_CHAN online=$ONLINE
 
         # Re-read to check whether we have succeeded
 	_online=$(cat $_ccwgroup_dir/online)
@@ -383,77 +383,77 @@ else
 	CCW_CHAN_ID=$QETH_READ_CHAN
 fi # QETH_FORCE
 
-if [ $DEBUG = "no" ]; then
-	RULES_DIR=/etc/udev/rules.d
-else
-	RULES_DIR=.
-fi
-
-RULES_FILE=51-${QETH_CARD}-${CCW_CHAN_ID}.rules
-
-if [ -d "$RULES_DIR" ]; then
-    if [ -f ${RULES_DIR}/${RULES_FILE} ]; then
-	rm -f ${RULES_DIR}/${RULES_FILE}
-    fi
-    remove_channel_for_cio "${QETH_READ_CHAN}"
-    remove_channel_for_cio "${QETH_WRITE_CHAN}"
-    remove_channel_for_cio "${QETH_DATA_CHAN}"
-
-    if [ "$ONLINE" -eq "1" ]; then
-	add_channel_for_cio "${QETH_READ_CHAN},${QETH_WRITE_CHAN},${QETH_DATA_CHAN}"
-        # Write a new udev rules file
-	cat > ${RULES_DIR}/${RULES_FILE} <<EOF
- Configure ${QETH_CARD} device at ${QETH_READ_CHAN}/${QETH_WRITE_CHAN}/${QETH_DATA_CHAN}
-ACTION=="add", SUBSYSTEM=="drivers", KERNEL=="$CCW_DRV", IMPORT{program}="collect $CCW_CHAN_ID %k $QETH_READ_CHAN $QETH_WRITE_CHAN $QETH_DATA_CHAN $CCW_DRV"
-ACTION=="add", SUBSYSTEM=="ccw", KERNEL=="$QETH_READ_CHAN", IMPORT{program}="collect $CCW_CHAN_ID %k $QETH_READ_CHAN $QETH_WRITE_CHAN $QETH_DATA_CHAN $CCW_DRV"
-ACTION=="add", SUBSYSTEM=="ccw", KERNEL=="$QETH_WRITE_CHAN", IMPORT{program}="collect $CCW_CHAN_ID %k $QETH_READ_CHAN $QETH_WRITE_CHAN $QETH_DATA_CHAN $CCW_DRV"
-ACTION=="add", SUBSYSTEM=="ccw", KERNEL=="$QETH_DATA_CHAN", IMPORT{program}="collect $CCW_CHAN_ID %k $QETH_READ_CHAN $QETH_WRITE_CHAN $QETH_DATA_CHAN $CCW_DRV"
-ACTION=="remove", SUBSYSTEM=="drivers", KERNEL=="$CCW_DRV", IMPORT{program}="collect --remove $CCW_CHAN_ID %k $QETH_READ_CHAN $QETH_WRITE_CHAN $QETH_DATA_CHAN $CCW_DRV"
-ACTION=="remove", SUBSYSTEM=="ccw", KERNEL=="$QETH_READ_CHAN", IMPORT{program}="collect --remove $CCW_CHAN_ID %k $QETH_READ_CHAN $QETH_WRITE_CHAN $QETH_DATA_CHAN $CCW_DRV"
-ACTION=="remove", SUBSYSTEM=="ccw", KERNEL=="$QETH_WRITE_CHAN", IMPORT{program}="collect --remove $CCW_CHAN_ID %k $QETH_READ_CHAN $QETH_WRITE_CHAN $QETH_DATA_CHAN $CCW_DRV"
-ACTION=="remove", SUBSYSTEM=="ccw", KERNEL=="$QETH_DATA_CHAN", IMPORT{program}="collect --remove $CCW_CHAN_ID %k $QETH_READ_CHAN $QETH_WRITE_CHAN $QETH_DATA_CHAN $CCW_DRV"
-TEST=="[ccwgroup/${CCW_CHAN_ID}]", GOTO="${QETH_CARD}-${CCW_CHAN_ID}-end"
-ACTION=="add", SUBSYSTEM=="ccw", ENV{COLLECT_$CCW_CHAN_ID}=="0", ATTR{[drivers/ccwgroup:$CCW_DRV]group}="$QETH_READ_CHAN,$QETH_WRITE_CHAN,$QETH_DATA_CHAN"
-ACTION=="add", SUBSYSTEM=="drivers", KERNEL=="$CCW_DRV", ENV{COLLECT_$CCW_CHAN_ID}=="0", ATTR{[drivers/ccwgroup:$CCW_DRV]group}="$QETH_READ_CHAN,$QETH_WRITE_CHAN,$QETH_DATA_CHAN"
-LABEL="${QETH_CARD}-${CCW_CHAN_ID}-end"
-EOF
-	if [ "$QETH_PORTNAME" ]; then
-	    cat >> ${RULES_DIR}/${RULES_FILE} <<EOF
-ACTION=="add", SUBSYSTEM=="ccwgroup", KERNEL=="$CCW_CHAN_ID", ATTR{portname}="$QETH_PORTNAME"
-EOF
-	  fi
-        if [ "$QETH_PORTNO" ]; then
-            cat >> ${RULES_DIR}/${RULES_FILE} <<EOF
-ACTION=="add", SUBSYSTEM=="ccwgroup", KERNEL=="$CCW_CHAN_ID", ATTR{portno}="$QETH_PORTNO"
-EOF
-        fi
-	if [ "$QETH_LAYER2_SUPPORT" ]; then
-	    cat >> ${RULES_DIR}/${RULES_FILE} <<EOF
-ACTION=="add", SUBSYSTEM=="ccwgroup", KERNEL=="$CCW_CHAN_ID", ATTR{layer2}="1"
-EOF
-	elif [ "${QETH_CARD}" != "osn" ]; then
-	    cat >> ${RULES_DIR}/${RULES_FILE} <<EOF
-ACTION=="add", SUBSYSTEM=="ccwgroup", KERNEL=="$CCW_CHAN_ID", ATTR{layer2}="0"
-EOF
-	fi
-	if [ "$QETH_IPA_TAKEOVER" ]; then
-	    cat >> ${RULES_DIR}/${RULES_FILE} <<EOF
-ACTION=="add", SUBSYSTEM=="ccwgroup", KERNEL=="$CCW_CHAN_ID", ATTR{ipa_takeover/enable}="1"
-EOF
-	fi
-	for opt in $QETH_OPTIONS; do
-	    set -- $(IFS='='; echo $opt)
-	    opt_name=$1
-	    opt_val=$2
-	    cat >> ${RULES_DIR}/${RULES_FILE} <<EOF
-ACTION=="add", SUBSYSTEM=="ccwgroup", KERNEL=="$CCW_CHAN_ID", ATTR{$opt_name}="$opt_val"
-EOF
-	done
-	cat >> ${RULES_DIR}/${RULES_FILE} <<EOF
-ACTION=="add", SUBSYSTEM=="ccwgroup", KERNEL=="$CCW_CHAN_ID", ATTR{online}="1"
-EOF
-    fi
-fi
+#if [ $DEBUG = "no" ]; then
+#	RULES_DIR=/etc/udev/rules.d
+#else
+#	RULES_DIR=.
+#fi
+#
+#RULES_FILE=51-${QETH_CARD}-${CCW_CHAN_ID}.rules
+#
+#if [ -d "$RULES_DIR" ]; then
+#    if [ -f ${RULES_DIR}/${RULES_FILE} ]; then
+#	rm -f ${RULES_DIR}/${RULES_FILE}
+#    fi
+#    remove_channel_for_cio "${QETH_READ_CHAN}"
+#    remove_channel_for_cio "${QETH_WRITE_CHAN}"
+#    remove_channel_for_cio "${QETH_DATA_CHAN}"
+#
+#    if [ "$ONLINE" -eq "1" ]; then
+#	add_channel_for_cio "${QETH_READ_CHAN},${QETH_WRITE_CHAN},${QETH_DATA_CHAN}"
+#        # Write a new udev rules file
+#	cat > ${RULES_DIR}/${RULES_FILE} <<EOF
+# Configure ${QETH_CARD} device at ${QETH_READ_CHAN}/${QETH_WRITE_CHAN}/${QETH_DATA_CHAN}
+#ACTION=="add", SUBSYSTEM=="drivers", KERNEL=="$CCW_DRV", IMPORT{program}="collect $CCW_CHAN_ID %k $QETH_READ_CHAN $QETH_WRITE_CHAN $QETH_DATA_CHAN $CCW_DRV"
+#ACTION=="add", SUBSYSTEM=="ccw", KERNEL=="$QETH_READ_CHAN", IMPORT{program}="collect $CCW_CHAN_ID %k $QETH_READ_CHAN $QETH_WRITE_CHAN $QETH_DATA_CHAN $CCW_DRV"
+#ACTION=="add", SUBSYSTEM=="ccw", KERNEL=="$QETH_WRITE_CHAN", IMPORT{program}="collect $CCW_CHAN_ID %k $QETH_READ_CHAN $QETH_WRITE_CHAN $QETH_DATA_CHAN $CCW_DRV"
+#ACTION=="add", SUBSYSTEM=="ccw", KERNEL=="$QETH_DATA_CHAN", IMPORT{program}="collect $CCW_CHAN_ID %k $QETH_READ_CHAN $QETH_WRITE_CHAN $QETH_DATA_CHAN $CCW_DRV"
+#ACTION=="remove", SUBSYSTEM=="drivers", KERNEL=="$CCW_DRV", IMPORT{program}="collect --remove $CCW_CHAN_ID %k $QETH_READ_CHAN $QETH_WRITE_CHAN $QETH_DATA_CHAN $CCW_DRV"
+#ACTION=="remove", SUBSYSTEM=="ccw", KERNEL=="$QETH_READ_CHAN", IMPORT{program}="collect --remove $CCW_CHAN_ID %k $QETH_READ_CHAN $QETH_WRITE_CHAN $QETH_DATA_CHAN $CCW_DRV"
+#ACTION=="remove", SUBSYSTEM=="ccw", KERNEL=="$QETH_WRITE_CHAN", IMPORT{program}="collect --remove $CCW_CHAN_ID %k $QETH_READ_CHAN $QETH_WRITE_CHAN $QETH_DATA_CHAN $CCW_DRV"
+#ACTION=="remove", SUBSYSTEM=="ccw", KERNEL=="$QETH_DATA_CHAN", IMPORT{program}="collect --remove $CCW_CHAN_ID %k $QETH_READ_CHAN $QETH_WRITE_CHAN $QETH_DATA_CHAN $CCW_DRV"
+#TEST=="[ccwgroup/${CCW_CHAN_ID}]", GOTO="${QETH_CARD}-${CCW_CHAN_ID}-end"
+#ACTION=="add", SUBSYSTEM=="ccw", ENV{COLLECT_$CCW_CHAN_ID}=="0", ATTR{[drivers/ccwgroup:$CCW_DRV]group}="$QETH_READ_CHAN,$QETH_WRITE_CHAN,$QETH_DATA_CHAN"
+#ACTION=="add", SUBSYSTEM=="drivers", KERNEL=="$CCW_DRV", ENV{COLLECT_$CCW_CHAN_ID}=="0", ATTR{[drivers/ccwgroup:$CCW_DRV]group}="$QETH_READ_CHAN,$QETH_WRITE_CHAN,$QETH_DATA_CHAN"
+#LABEL="${QETH_CARD}-${CCW_CHAN_ID}-end"
+#EOF
+#	if [ "$QETH_PORTNAME" ]; then
+#	    cat >> ${RULES_DIR}/${RULES_FILE} <<EOF
+#ACTION=="add", SUBSYSTEM=="ccwgroup", KERNEL=="$CCW_CHAN_ID", ATTR{portname}="$QETH_PORTNAME"
+#EOF
+#	  fi
+#        if [ "$QETH_PORTNO" ]; then
+#            cat >> ${RULES_DIR}/${RULES_FILE} <<EOF
+#ACTION=="add", SUBSYSTEM=="ccwgroup", KERNEL=="$CCW_CHAN_ID", ATTR{portno}="$QETH_PORTNO"
+#EOF
+#        fi
+#	if [ "$QETH_LAYER2_SUPPORT" ]; then
+#	    cat >> ${RULES_DIR}/${RULES_FILE} <<EOF
+#ACTION=="add", SUBSYSTEM=="ccwgroup", KERNEL=="$CCW_CHAN_ID", ATTR{layer2}="1"
+#EOF
+#	elif [ "${QETH_CARD}" != "osn" ]; then
+#	    cat >> ${RULES_DIR}/${RULES_FILE} <<EOF
+#ACTION=="add", SUBSYSTEM=="ccwgroup", KERNEL=="$CCW_CHAN_ID", ATTR{layer2}="0"
+#EOF
+#	fi
+#	if [ "$QETH_IPA_TAKEOVER" ]; then
+#	    cat >> ${RULES_DIR}/${RULES_FILE} <<EOF
+#ACTION=="add", SUBSYSTEM=="ccwgroup", KERNEL=="$CCW_CHAN_ID", ATTR{ipa_takeover/enable}="1"
+#EOF
+#	fi
+#	for opt in $QETH_OPTIONS; do
+#	    set -- $(IFS='='; echo $opt)
+#	    opt_name=$1
+#	    opt_val=$2
+#	    cat >> ${RULES_DIR}/${RULES_FILE} <<EOF
+#ACTION=="add", SUBSYSTEM=="ccwgroup", KERNEL=="$CCW_CHAN_ID", ATTR{$opt_name}="$opt_val"
+#EOF
+#	done
+#	cat >> ${RULES_DIR}/${RULES_FILE} <<EOF
+#ACTION=="add", SUBSYSTEM=="ccwgroup", KERNEL=="$CCW_CHAN_ID", ATTR{online}="1"
+#EOF
+#    fi
+#fi
 
 udevadm settle
 
