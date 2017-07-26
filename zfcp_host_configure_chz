@@ -61,16 +61,9 @@ if [ $# -ne 2 ] ; then
     exit 1
 fi
 
-# Get the mount point for sysfs
-while read MNTPT MNTDIR MNTSYS MNTTYPE; do
-    if test "$MNTSYS" = "sysfs"; then
-	SYSFS="$MNTDIR"
-	break;
-    fi
-done </proc/mounts
-
 #Throw error if SYSFS is not present
-if [ -z "$SYSFS" ]; then
+grep -qe ^'sysfs /sys' < /proc/mounts
+if [ $? -ne 0 ]; then
     mesg "/sysfs not present"
     exit 1
 fi
@@ -91,7 +84,7 @@ if [ -z "$ONLINE" ] || [ "$ONLINE" != "1" -a "$ONLINE" != "0" ]; then
     exit 2
 fi
 
-_ccw_dir=${SYSFS}/bus/ccw/devices
+_ccw_dir=/sys/bus/ccw/devices
 _zfcp_dir="$_ccw_dir/$CCW_CHAN_ID"
 
 if test ! -d "$_zfcp_dir" ; then
@@ -100,10 +93,10 @@ if test ! -d "$_zfcp_dir" ; then
 fi
 
 # Check whether we need to load the zfcp module
-if test ! -d "${SYSFS}/bus/ccw/drivers/zfcp"; then
+if test ! -d "/sys/bus/ccw/drivers/zfcp"; then
     modprobe ${MODULE}
     # Re-check whether module loading has succeeded
-    if test ! -d "${SYSFS}/bus/ccw/drivers/zfcp"; then
+    if test ! -d "/sys/bus/ccw/drivers/zfcp"; then
 	     mesg "Could not load module ${MODULE}"
 	     exit 4
     fi
