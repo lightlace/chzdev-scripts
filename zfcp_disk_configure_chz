@@ -223,16 +223,8 @@ else
 		read _zfcp_tmp_hba < ${target}/hba_id
 		read _zfcp_tmp_wwpn < ${target}/wwpn
 		read _zfcp_tmp_lun < ${target}/fcp_lun
-		if [ "0x${FCP_LUN}" = "$_zfcp_tmp_lun" -a "0x${FCP_WWPN}" = "$_zfcp_tmp_wwpn" ] ; then
-		    if [ "$auto_lun_scan"  = 1 ] ; then
-			mesg "Could not deactivate SCSI disk ${_zfcp_scsi_id}"
-			exit 7
-		    else
-			echo 1 > $target/delete
-			_zfcp_scsi_dir=$target
-		    fi
-		    break;
-		fi
+    chzdev zfcp-lun ${CCW_CHAN_ID}:${FCP_WWPN}:0x${FCP_LUN} scsi_dev/delete=1
+    chzdev zfcp-lun -f --disable ${CCW_CHAN_ID}:${FCP_WWPN}:0x${FCP_LUN}
 	    fi
 	done
 	/sbin/udevadm settle
@@ -260,7 +252,6 @@ else
     [ "$_zfcp_scsi_dev" ] && multipathd -k"del path $_zfcp_scsi_dev"
 
     # Deconfigure the FCP_LUN
-    chzdev zfcp-lun -f --disable ${CCW_CHAN_ID}:${FCP_WWPN}:0x${FCP_LUN}
     if [ -d "${_zfcp_wwpn_dir}/0x${FCP_LUN}" ]; then
 	mesg "Could not deregister FCP LUN ${FCP_LUN}"
 	exit 8
