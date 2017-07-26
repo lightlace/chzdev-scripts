@@ -343,7 +343,7 @@ if [ "$ONLINE" -eq 1 ]; then
 	fi
 
 	#run chzdev
-	chzdev $QETH_READ_CHAN:$QETH_WRITE_CHAN:$QETH_DATA_CHAN online=1 ${_opts}
+	chzdev --enable $QETH_READ_CHAN:$QETH_WRITE_CHAN:$QETH_DATA_CHAN ${_opts}
 	#echo "1" > $_ccwgroup_dir/online 2> /dev/null
         # Re-read device status
 	read _ccw_dev_status < $_ccwgroup_dir/online
@@ -359,7 +359,7 @@ else
         # Set the device offline
 	debug_mesg "Setting device offline"
 	#echo "$ONLINE" > $_ccwgroup_dir/online
-	chzdev $QETH_READ_CHAN:$QETH_WRITE_CHAN:$QETH_DATA_CHAN online=$ONLINE ${_opts}
+	chzdev --disable $QETH_READ_CHAN:$QETH_WRITE_CHAN:$QETH_DATA_CHAN ${_opts}
 
         # Re-read to check whether we have succeeded
 	_online=$(cat $_ccwgroup_dir/online)
