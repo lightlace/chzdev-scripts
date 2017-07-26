@@ -119,14 +119,8 @@ done
 
 if [ $QETH_FORCE -eq 0 ]; then
 # Get the mount point for sysfs
-	while read MNTPT MNTDIR MNTSYS MNTTYPE; do
-	    if test "$MNTSYS" = "sysfs"; then
-		SYSFS="$MNTDIR"
-		break;
-	    fi
-	done </proc/mounts
-
-	if [ -z "$SYSFS" ]; then
+	grep -qe ^'sysfs /sys' < /proc/mounts
+	if [ $? -ne 0 ]; then
 	    mesg "/sysfs not present"
 	    exit 1
 	fi
@@ -161,7 +155,7 @@ if [ -z "$ONLINE" ] || [ "$ONLINE" -ne "1" -a "$ONLINE" -ne "0" ]; then
 fi
 
 if [ $QETH_FORCE -eq 0 ]; then
-_ccw_dir=${SYSFS}/bus/ccw/devices
+_ccw_dir=/sys/bus/ccw/devices
 
 # Convert any hexidecimal numbers to lower case
 QETH_READ_CHAN=$(echo ${QETH_READ_CHAN} | tr "[A-Z]" "[a-z]")
@@ -225,7 +219,7 @@ if [ -n "$QETH_PORTNAME" -a "$QETH_CARD" != "qeth" ] ; then
 fi
 
 if [ $QETH_FORCE -eq 0 ]; then
-_ccw_groupdir=${SYSFS}/bus/ccwgroup
+_ccw_groupdir=/sys/bus/ccwgroup
 
 # Check for modules
 if test ! -d "${_ccw_groupdir}/drivers/${CCW_DRV}" ; then
@@ -343,7 +337,7 @@ if [ "$ONLINE" -eq 1 ]; then
 	fi
 
 	#run chzdev
-	chzdev $QETH_READ_CHAN:$QETH_WRITE_CHAN:$QETH_DATA_CHAN online=1 ${_opts}
+	chzdev --enable $QETH_READ_CHAN:$QETH_WRITE_CHAN:$QETH_DATA_CHAN ${_opts}
 	#echo "1" > $_ccwgroup_dir/online 2> /dev/null
         # Re-read device status
 	read _ccw_dev_status < $_ccwgroup_dir/online
@@ -359,7 +353,7 @@ else
         # Set the device offline
 	debug_mesg "Setting device offline"
 	#echo "$ONLINE" > $_ccwgroup_dir/online
-	chzdev $QETH_READ_CHAN:$QETH_WRITE_CHAN:$QETH_DATA_CHAN online=$ONLINE ${_opts}
+	chzdev --disable $QETH_READ_CHAN:$QETH_WRITE_CHAN:$QETH_DATA_CHAN ${_opts}
 
         # Re-read to check whether we have succeeded
 	_online=$(cat $_ccwgroup_dir/online)

@@ -103,15 +103,8 @@ while [ $# -gt 0 ] ; do
 done
 
 if [ $DASD_FORCE -eq 0 ]; then
-    # Get the mount point for sysfs
-    while read MNTPT MNTDIR MNTSYS MNTTYPE; do
-	if test "$MNTSYS" = "sysfs"; then
-	    SYSFS="$MNTDIR"
-	    break;
-	fi
-    done </proc/mounts
-
-    if [ -z "$SYSFS" ]; then
+    grep -qe ^'sysfs /sys' < /proc/mounts
+    if [ $? -ne 0 ]; then
 	mesg "/sysfs not present"
 	exit 1
     fi
@@ -144,7 +137,7 @@ if [ -z "$ONLINE" ] || [ "$ONLINE" -ne "1" -a "$ONLINE" -ne "0" ]; then
 fi
 
 if [ $DASD_FORCE -eq 0 ]; then
-    _ccw_dir=${SYSFS}/bus/ccw/devices
+    _ccw_dir=/sys/bus/ccw/devices
 
     debug_mesg "Configuring device ${CCW_CHAN_ID}"
     _ccw_status_dir="$_ccw_dir/$CCW_CHAN_ID"
@@ -198,11 +191,11 @@ if [ $DASD_FORCE -eq 0 ]; then
 	fi
 
 	# Check for modules
-	if test ! -d "${SYSFS}/bus/ccw/drivers/${CCW_CHAN_NAME}" ; then
+	if test ! -d "/sys/bus/ccw/drivers/${CCW_CHAN_NAME}" ; then
 	    /sbin/modprobe $MODULE
 
 	    # Re-check whether module loading has succeeded
-	    if test ! -d "${SYSFS}/bus/ccw/drivers/${CCW_CHAN_NAME}"; then
+	    if test ! -d "/sys/bus/ccw/drivers/${CCW_CHAN_NAME}"; then
 		mesg "Could not load module ${MODULE}"
 		exit 6
 	    fi
