@@ -266,3 +266,12 @@ if [ -d "$RULES_DIR" ]; then
 	add_channel_for_cio "$CTC_READ_CHAN,$CTC_WRITE_CHAN"
 fi
 fi
+
+#check for 51-type rules
+if [ -a /etc/udev/rules.d/51-ctcm-$CTC_READ_CHAN.rules ]; then
+  rm -rf /etc/udev/rules.d/51-ctcm-$CTC_READ_CHAN.rules
+  #re-check, if there are any 51-rules
+  if [ -a /etc/udev/rules.d/51-ctcm-$CTC_READ_CHAN.rules ]; then
+    echo "/etc/udev/rules.d/51-ctcm-$CTC_READ_CHAN.rules could not be deleted."
+  fi
+fi
