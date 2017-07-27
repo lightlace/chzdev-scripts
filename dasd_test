@@ -333,7 +333,7 @@ exit 4
 	if [ "$_ccw_dev_status" -eq 1 ]; then
 	    # Set the device offline
 	    debug_mesg "Setting device offline"
-	    _opts="${_opts} online=0"
+	    chzdev ${CCW_CHAN_ID} online=0
 
 	    # Re-read to check whether we have succeeded
 	    _ccw_dev_status=$(cat $_ccw_status_dir/online)
@@ -347,18 +347,15 @@ exit 4
 
 	if [ -d "$_ccw_status_dir" ] ; then
 	    # Always disabling DIAG access
-	    _opts="${_opts} use_diag=0"
+	    chzdev ${CCW_CHAN_ID} use_diag=0
 	fi
 
 	# Set readonly access if detected
 	if [ "$_ccw_use_readonly" ]; then
-	    debug_mesg "Setting device read-only"
-	   _opts="${_opts} readonly=1"
+	   debug_mesg "Setting device read-only"
+	   chzdev ${CCW_CHAN_ID} readonly=1
 	fi
     fi # if [ "$ONLINE" -eq 1 ]
-
-    #run chzdev
-    chzdev $CCW_CHAN_ID online=$ONLINE ${_opts}
 
     # Wait until udev is settled
     [ -x /sbin/udevadm ] && /sbin/udevadm settle --timeout=30
