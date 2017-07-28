@@ -371,6 +371,15 @@ else
 	CCW_CHAN_ID=$QETH_READ_CHAN
 fi # QETH_FORCE
 
+#check for 51-type rules
+if [ -a /etc/udev/rules.d/51-???-$QETH_READ_CHAN.rules ]; then
+  rm -rf /etc/udev/rules.d/51-???-$QETH_READ_CHAN.rules
+  #re-check, if there are any 51-rules
+  if [ -a /etc/udev/rules.d/51-???-$QETH_READ_CHAN.rules ]; then
+    echo "/etc/udev/rules.d/51-???-$QETH_READ_CHAN.rules could not be deleted."
+  fi
+fi
+
 #if [ $DEBUG = "no" ]; then
 #	RULES_DIR=/etc/udev/rules.d
 #else
