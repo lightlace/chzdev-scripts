@@ -6,7 +6,6 @@
 #
 # Usage:
 #   qeth_configure [-i] [-l] [-f -t <CARDTYPE> ] [-o "Values"] -n <portno> -p <portname> <read chan> <write chan> <data chan> <online>
-#
 #	-i Configure IP takeover
 #	-l Configure Layer2 support
 #	-f force creation of udev rules, do not check values in /sys
@@ -372,12 +371,17 @@ else
 fi # QETH_FORCE
 
 #check for 51-type rules
-if [ -a /etc/udev/rules.d/51-???-$QETH_READ_CHAN.rules ]; then
-  rm -rf /etc/udev/rules.d/51-???-$QETH_READ_CHAN.rules
-  #re-check, if there are any 51-rules
-  if [ -a /etc/udev/rules.d/51-???-$QETH_READ_CHAN.rules ]; then
-    echo "/etc/udev/rules.d/51-???-$QETH_READ_CHAN.rules could not be deleted."
-  fi
+OLD_RULES_FILE=/etc/udev/rules.d/51-???-${QETH_READ_CHAN}.rules
+NEW_RULES_FILE=/etc/udev/rules.d/41-???-${QETH_READ_CHAN}.rules
+if [ -a $OLD_RULES_FILE ]; then
+    # only delete 51-type rules if 41-type ones have been written
+    if [ -a $NEW_RULES_FILE ]; then
+	rm -rf $OLD_RULES_FILE
+	    #re-check
+	    if [ -a $OLD_RULES_FILE ]; then
+		echo "$OLD_RULES_FILE could not be deleted."
+	    fi
+	fi
 fi
 
 #if [ $DEBUG = "no" ]; then
