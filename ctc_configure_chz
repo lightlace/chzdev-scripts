@@ -50,6 +50,21 @@ mesg () {
     echo "$@"
 }
 
+map_chzdev_return() {
+	if [ "$2" == "online" ]; then
+	    _state="10"
+	else
+	    _state="11"
+	fi
+	case "$1" in
+	    5) exit 6 ;;
+	    21) exit 7 ;;
+	    28) exit 8 ;;
+	    31) exit 9 ;;
+	    *) exit _state ;;
+	esac
+}
+
 debug_mesg () {
     case "$DEBUG" in
         yes) mesg "$@" ;;
@@ -60,11 +75,6 @@ debug_mesg () {
 # Get the mount point for sysfs
 grep -qe ^'sysfs /sys' < /proc/mounts
 if [ $? -ne 0 ]; then
-    mesg "/sysfs not present"
-    exit 1
-fi
-
-if [ -z "$SYSFS" ]; then
     mesg "/sysfs not present"
     exit 1
 fi
