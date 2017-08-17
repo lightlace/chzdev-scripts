@@ -250,7 +250,7 @@ if [ "$ONLINE" -eq 1 ]; then
 
 	#run chzdev
 	_ret=chzdev --enable $QETH_READ_CHAN:$QETH_WRITE_CHAN:$QETH_DATA_CHAN ${_opts}
-	map_chzdev $_ret online
+	map_chzdev_return $_ret online
 
 	if [ "$QETH_OPTIONS" ]; then
 	    set_qeth_options
