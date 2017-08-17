@@ -44,16 +44,16 @@ mesg () {
 
 map_chzdev_return() {
 	if [ "$2" == "online" ]; then
-	    _state="10"
+	    _state=10
 	else
-	    _state="11"
+	    _state=11
 	fi
 	case "$1" in
 	    5) exit 6 ;;
 	    21) exit 7 ;;
 	    28) exit 8 ;;
 	    31) exit 9 ;;
-	    *) exit _state ;;
+	    *) exit $_state ;;
 	esac
 }
 
@@ -249,7 +249,8 @@ if [ "$ONLINE" -eq 1 ]; then
 	fi
 
 	#run chzdev
-	_ret=chzdev --enable $QETH_READ_CHAN:$QETH_WRITE_CHAN:$QETH_DATA_CHAN ${_opts}
+	chzdev --enable $QETH_READ_CHAN:$QETH_WRITE_CHAN:$QETH_DATA_CHAN ${_opts}
+	_ret=$?
 	map_chzdev_return $_ret online
 
 	if [ "$QETH_OPTIONS" ]; then
@@ -263,8 +264,10 @@ else
         # Set the device offline
 	debug_mesg "Setting device offline"
 	#echo "$ONLINE" > $_ccwgroup_dir/online
-	_ret=chzdev --disable $QETH_READ_CHAN:$QETH_WRITE_CHAN:$QETH_DATA_CHAN ${_opts}
+	chzdev --disable $QETH_READ_CHAN:$QETH_WRITE_CHAN:$QETH_DATA_CHAN ${_opts}
+	_ret=$?
 	map_chzdev $_ret offline
+    fi
 fi
 
 #check for 51-type rules
