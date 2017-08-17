@@ -228,8 +228,6 @@ if [ "$ONLINE" -eq 1 ]; then
 	    if [ "$QETH_LAYER2_SUPPORT" = "1" ]; then
 		mesg "(Layer2) "
 		_opts="${_opts} layer2=1"
-	    else
-		_opts="${_opts} layer2=0"
 	    fi
 	fi
 	# Enable IP address takeover
