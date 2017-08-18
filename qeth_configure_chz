@@ -264,7 +264,7 @@ else
 	#echo "$ONLINE" > $_ccwgroup_dir/online
 	chzdev --disable $QETH_READ_CHAN:$QETH_WRITE_CHAN:$QETH_DATA_CHAN ${_opts}
 	_ret=$?
-	map_chzdev $_ret offline
+	map_chzdev_return $_ret offline
     fi
 fi
 
