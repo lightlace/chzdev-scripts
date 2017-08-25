@@ -50,18 +50,19 @@ mesg () {
     echo "$@"
 }
 
-map_chzdev_return() {
+exit_on_err() {
 	if [ "$2" == "online" ]; then
 	    _state="10"
 	else
 	    _state="11"
 	fi
 	case "$1" in
+      0) return 0 ;;
 	    5) exit 6 ;;
 	    21) exit 7 ;;
 	    28) exit 8 ;;
 	    31) exit 9 ;;
-	    *) exit _state ;;
+	    *) exit $_state ;;
 	esac
 }
 
@@ -106,21 +107,21 @@ if [ -z "$ONLINE" ] || [ "$ONLINE" -ne "1" -a "$ONLINE" -ne "0" ]; then
     exit 2
 fi
 
-_ccw_dir=${SYSFS}/bus/ccw/devices
+_ccw_dir=/sys/bus/ccw/devices
 
 debug_mesg "Configuring CTC/LCS device ${CTC_READ_CHAN}/${CTC_WRITE_CHAN}"
 
 
-if test ! -d "$_ccw_dir/$CTC_READ_CHAN" ; then
+if test ! -d "$_ccw_dir/$CTC_READ_CHAN" ; then #to be replaced
     mesg "device $_ccw_dir/$CTC_READ_CHAN does not exist"
     exit 3
 fi
-if test ! -d "$_ccw_dir/$CTC_WRITE_CHAN" ; then
+if test ! -d "$_ccw_dir/$CTC_WRITE_CHAN" ; then #to be replaced
     mesg "device $_ccw_dir/$CTC_WRITE_CHAN does not exist"
     exit 4
 fi
 
-CCW_CHAN_GROUP=
+CCW_CHAN_GROUP= #to be replaced
 for ccw in $_ccw_dir/$CTC_READ_CHAN $_ccw_dir/$CTC_WRITE_CHAN; do
 
     read _cu_type < $ccw/cutype
@@ -170,14 +171,14 @@ if [ "$tmp_chan" != "$CCW_CHAN_GROUP" ] ; then
     exit 6
 fi
 
-_ccw_groupdir=${SYSFS}/bus/ccwgroup
+_ccw_groupdir=/sys/bus/ccwgroup
 
 # Check for modules
-if test ! -d "${_ccw_groupdir}/drivers/${CCW_CHAN_GROUP}" ; then
+if test ! -d "${_ccw_groupdir}/drivers/${CCW_CHAN_GROUP}" ; then #to be replaced
     /sbin/modprobe $CCW_CHAN_GROUP
 
     # Re-check whether module loading has succeeded
-    if test ! -d "${_ccw_groupdir}/drivers/${CCW_CHAN_GROUP}"; then
+    if test ! -d "${_ccw_groupdir}/drivers/${CCW_CHAN_GROUP}"; then #to be replaced
 	mesg "Could not load module ${CCW_CHAN_GROUP}"
 	exit 7
     fi
@@ -185,12 +186,12 @@ fi
 
 # Check for grouping
 _ccw_status_dir=
-if [ -e ${_ccw_dir}/${CTC_READ_CHAN}/group_device ] ; then
+if [ -e ${_ccw_dir}/${CTC_READ_CHAN}/group_device ] ; then #to be replaced
     _ccw_status_dir=$(cd -P ${_ccw_dir}/${CTC_READ_CHAN}/group_device; echo $PWD)
 fi
-if [ -e ${_ccw_dir}/${CTC_WRITE_CHAN}/group_device ] ; then
+if [ -e ${_ccw_dir}/${CTC_WRITE_CHAN}/group_device ] ; then #to be replaced
     _tmp_status_dir=$(cd -P ${_ccw_dir}/${CTC_READ_CHAN}/group_device; echo $PWD)
-    if [ "$_ccw_status_dir" ] && [ "$_ccw_status_dir" != "$_tmp_status_dir" ] ; then
+    if [ "$_ccw_status_dir" ] && [ "$_ccw_status_dir" != "$_tmp_status_dir" ] ; then #to be replaced
 	mesg "CCW devices grouped to different devices"
 	exit 8
     fi
@@ -199,7 +200,7 @@ fi
 #
 #	Addresses are free (but may be bound to the wrong driver)
 #
-_ccw_drivers=${SYSFS}/bus/ccw/drivers
+_ccw_drivers=/sys/bus/ccw/drivers #to be replaced
 for i in ${CTC_READ_CHAN} ${CTC_WRITE_CHAN}
   do
         if [ "$CCW_CHAN_GROUP" = "lcs" ]
@@ -220,51 +221,38 @@ for i in ${CTC_READ_CHAN} ${CTC_WRITE_CHAN}
         fi
   done
 
-debug_mesg "Group is ${_ccw_groupdir}/drivers/${CCW_CHAN_GROUP}/group"
-if [ -z "$_ccw_status_dir" ] ; then
+debug_mesg "Group is ${_ccw_groupdir}/drivers/${CCW_CHAN_GROUP}/group" #to be replaced
+if [ -z "$_ccw_status_dir" ] ; then #to be replaced
     echo "$CTC_READ_CHAN,$CTC_WRITE_CHAN" > ${_ccw_groupdir}/drivers/${CCW_CHAN_GROUP}/group
     if [ -e ${_ccw_dir}/${CTC_READ_CHAN}/group_device ] ; then
 	_ccw_status_dir=$(cd -P ${_ccw_dir}/${CTC_READ_CHAN}/group_device; echo $PWD)
     fi
 fi
 
-if [ -z "$_ccw_status_dir" -o ! -e  "$_ccw_status_dir" ] ; then
+if [ -z "$_ccw_status_dir" -o ! -e  "$_ccw_status_dir" ] ; then #to be replaced
     mesg "Could not group $CCW_CHAN_GROUP devices $CTC_READ_CHAN/$CTC_WRITE_CHAN"
     exit 9
 fi
 
 CCW_CHAN_ID=${_ccw_status_dir##*/}
 
-read _ccw_dev_status < $_ccw_status_dir/online
+read _ccw_dev_status < $_ccw_status_dir/online #to be replaced
 
 if [ "$ONLINE" -eq 1 ]; then
 	# Set the device online
 	debug_mesg "Setting device online"
-	chzdev ctc $CTC_READ_CHAN:$CTC_WRITE_CHAN online=1 protocol=$CTC_MODE
-  # Re-read device status
-	read _ccw_dev_status < $_ccw_status_dir/online
-	if [ "$_ccw_dev_status" -eq 0 ]; then
-	    mesg "Could not set device ${CCW_CHAN_ID} online"
-	    exit 10
-	fi
+	chzdev --enable ctc $CTC_READ_CHAN:$CTC_WRITE_CHAN protocol=$CTC_MODE
+  exit_on_err $? online
 else
     if [ "$_ccw_dev_status" -eq 1 ]; then
         # Set the device offline
 	debug_mesg "Setting device offline"
-	chzdev ctc $CTC_READ_CHAN:$CTC_WRITE_CHAN online=0 protocol=$CTC_MODE
-
-  # Re-read to check whether we have succeeded
-	_ccw_dev_status=$(cat $_ccw_status_dir/online)
-	if [ "$_ccw_dev_status" -ne "$ONLINE" ]; then
-	    mesg "Could not set device ${CCW_CHAN_ID} offline"
-	    exit 11
-	fi
-    else
-	debug_mesg "Device ${CCW_CHAN_ID} is already offline"
+	chzdev --disable ctc $CTC_READ_CHAN:$CTC_WRITE_CHAN
+  exit_on_err $? offline
     fi
     # Always reset CTC Protocol
     if [ "$CCW_CHAN_GROUP" != "lcs" ]; then
-	chzdev $CTC_READ_CHAN:$CTC_WRITE_CHAN protocol=0
+	chzdev -q $CTC_READ_CHAN:$CTC_WRITE_CHAN protocol=0
     fi
 fi
 
