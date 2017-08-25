@@ -56,6 +56,17 @@ mesg () {
     echo "$@"
 }
 
+exit_on_err() {
+	if [ "$2" == "online" ] || [ "$2" == "offline" ]; then
+	    _state="4"
+	fi
+	case "$1" in
+      0) return 0 ;;
+      7) exit 4 ;;
+	    *) exit $_state ;;
+	esac
+}
+
 debug_mesg () {
     case "$DEBUG" in
 	yes) mesg "$@" ;;
@@ -142,68 +153,22 @@ if [ $DASD_FORCE -eq 0 ]; then
     debug_mesg "Configuring device ${CCW_CHAN_ID}"
     _ccw_status_dir="$_ccw_dir/$CCW_CHAN_ID"
 
-    if test ! -d "$_ccw_status_dir" ; then
+    if test ! -d "$_ccw_status_dir" ; then  #to be replaced
 	if test "$ONLINE" -eq 1 ; then
 	    mesg "No device ${CCW_CHAN_ID}"
 	    exit 3
 	fi
 	_ccw_dev_status=0
     else
-	read _cu_type < $_ccw_status_dir/cutype
-	read _dev_type < $_ccw_status_dir/devtype
 
-	case "$_cu_type" in
-	    3990/*|2105/*|2107/*|1750/*|9343/*)
-		CCW_CHAN_NAME="dasd-eckd"
-		MODULE=dasd_eckd_mod
-		DISCIPLINE=ECKD
-		;;
-	    6310/*)
-		CCW_CHAN_NAME="dasd-fba"
-		MODULE=dasd_fba_mod
-		DISCIPLINE=FBA
-		;;
-	    3880/*)
-		case "$_dev_type" in
-		    3390/*)
-			CCW_CHAN_NAME="dasd-eckd"
-			MODULE=dasd_eckd_mod
-			DISCIPLINE=ECKD
-			;;
-		    3370/*)
-			CCW_CHAN_NAME="dasd-fba"
-			MODULE=dasd_fba_mod
-			DISCIPLINE=FBA
-			;;
-		    *)
-			CCW_CHAN_NAME=
-			;;
-		esac
-		;;
-	    *)
-		CCW_CHAN_NAME=
-		;;
-	esac
-
+  CCW_CHAN_NAME=$(lszdev ${CCW_CHAN_ID} -c TYPE -n)
 	if [ -z "$CCW_CHAN_NAME" ]; then
 	    mesg "Not a DASD device (cu $_cutype, dev $_devtype)"
 	    exit 5
 	fi
 
-	# Check for modules
-	if test ! -d "/sys/bus/ccw/drivers/${CCW_CHAN_NAME}" ; then
-	    /sbin/modprobe $MODULE
-
-	    # Re-check whether module loading has succeeded
-	    if test ! -d "/sys/bus/ccw/drivers/${CCW_CHAN_NAME}"; then
-		mesg "Could not load module ${MODULE}"
-		exit 6
-	    fi
-	fi
-
-	read _ccw_dev_status < $_ccw_status_dir/online
+	_ccw_dev_status=$(lszdev ${CCW_CHAN_ID} -i | grep online | grep -o '[0-9]*' | head -1)  #to be replaced
     fi # if test ! -d "$_ccw_status_dir"
-
     #
     # We check whether we are running under z/VM by looking for the string
     # "Control Program: z/VM" in /proc/sysinfo
@@ -242,13 +207,8 @@ if [ $DASD_FORCE -eq 0 ]; then
 	    # We need to change the DIAG access mode
 	    # so we have to set the device offline first
 	    debug_mesg "Setting device offline for DIAG access"
-      chzdev $CCW_CHAN_ID online=0
-	    # Re-read device status
-	    read _ccw_dev_status < $_ccw_status_dir/online
-	    if [ "$_ccw_dev_status" -ne 0 ]; then
-		mesg "Could not set the device offline for DIAG access"
-		exit 4
-	    fi
+      chzdev --disable $CCW_CHAN_ID
+      exit_on_err $? offline
 	fi
 
 	if [ "$_ccw_dev_status" -eq 0 ]; then
@@ -267,18 +227,19 @@ if [ $DASD_FORCE -eq 0 ]; then
 		    # We can only be sure if DIAG is available
 		    # _after_ we have activated the device
 		    debug_mesg "Activating DIAG access mode"
-		    read _ccw_use_diag < $_ccw_status_dir/use_diag
+		    read _ccw_use_diag < $_ccw_status_dir/use_diag   #to be replaced
 		    # Set the device online
 		    debug_mesg "Setting device online"
-		    chzdev $CCW_CHAN_ID online=1 use_diag=1
+		    chzdev --enable $CCW_CHAN_ID use_diag=1
 		    # Re-read device status
-		    read _ccw_dev_status < $_ccw_status_dir/online
+		    _ccw_dev_status=$(‎‎‎‎lszdev ${CCW_CHAN_ID} -i | sed -ne 's/^ *online  *"\([^"][^"]*\)" .*$/\1/p')   #to be replaced
 		    if [ "$_ccw_dev_status" -eq 0 ]; then
 			mesg "Could not activate DIAG access mode for device ${CCW_CHAN_ID}"
 			USE_DIAG=0
 			# Set the device online
 			debug_mesg "Setting device online"
-			chzdev $CCW_CHAN_ID online=1 use_diag=$USE_DIAG
+			chzdev --enable $CCW_CHAN_ID use_diag=$USE_DIAG
+      exit_on_err $? online
 		    else
 			MODULE=dasd_diag_mod
 		    fi
@@ -287,20 +248,22 @@ if [ $DASD_FORCE -eq 0 ]; then
 		    USE_DIAG=0
 		    # Set the device online
 		    debug_mesg "Setting device online"
-		    chzdev $CCW_CHAN_ID online=1
+		    chzdev --enable $CCW_CHAN_ID
+        exit_on_err $? online
 		fi # if [ "$_has_dasd_diag" ];
 	    else
 		if [ "$_ccw_use_diag" -eq 1 ] ; then
 		    debug_mesg "Deactivating DIAG access mode"
-		    read _ccw_use_diag < $_ccw_status_dir/use_diag
+		    read _ccw_use_diag < $_ccw_status_dir/use_diag  #to be replaced
 		fi
 		# Set the device online
 		debug_mesg "Setting device online"
-		chzdev $CCW_CHAN_ID online=1 use_diag=0
+		chzdev --enable $CCW_CHAN_ID use_diag=0
+    exit_on_err $? online
 	    fi # if [ "$USE_DIAG" -eq 1 ]
 
 	    # Wait for the device to come online
-	    read _dasd_state < $_ccw_status_dir/status
+	    read _dasd_state < $_ccw_status_dir/status  #to be replaced
 	    i=0
 	    while [ "$_dasd_state" != "online" ] ; do
 		if [ "$_dasd_state" = "unformatted" ] ; then
@@ -311,20 +274,13 @@ if [ $DASD_FORCE -eq 0 ]; then
 		[ $i -gt 30 ] && break
 		i=$(expr $i + 1)
 		sleep .1
-		read _dasd_state < $_ccw_status_dir/status
+		read _dasd_state < $_ccw_status_dir/status   #to be replaced
 	    done
 	else
 	    debug_mesg "Device ${CCW_CHAN_ID} is already online"
 	fi # if [ "$_ccw_dev_status" -eq 0 ]
 
-  # Re-read device status
-  read _ccw_dev_status < $_ccw_status_dir/online
-  if [ "$_ccw_dev_status" -eq 0 ]; then
-mesg "Could not set device ${CCW_CHAN_ID} online"
-exit 4
-  fi
-
-	read _dasd_state < $_ccw_status_dir/status
+	read _dasd_state < $_ccw_status_dir/status  #to be replaced
 	if [ "$_dasd_state" != "online" ] && [ "$_dasd_state" != "unformatted" ] ; then
 	    mesg "Failed to activate device ${CCW_CHAN_ID}, device in state $_dasd_state"
 	    exit 7
@@ -333,32 +289,21 @@ exit 4
 	if [ "$_ccw_dev_status" -eq 1 ]; then
 	    # Set the device offline
 	    debug_mesg "Setting device offline"
-	    chzdev ${CCW_CHAN_ID} online=0
-
-	    # Re-read to check whether we have succeeded
-	    _ccw_dev_status=$(cat $_ccw_status_dir/online)
-	    if [ "$?" -ne  0 -o "$_ccw_dev_status" -ne "$ONLINE" ]; then
-		mesg "Could not set device ${CCW_CHAN_ID} offline"
-		exit 4
-	    fi
-	else
-	    debug_mesg "Device ${CCW_CHAN_ID} is already offline"
+	    chzdev --disable ${CCW_CHAN_ID}
+      exit_on_err $? offline
 	fi
 
 	if [ -d "$_ccw_status_dir" ] ; then
 	    # Always disabling DIAG access
-	    chzdev ${CCW_CHAN_ID} use_diag=0
+	    chzdev ${CCW_CHAN_ID} -q use_diag=0
 	fi
 
 	# Set readonly access if detected
 	if [ "$_ccw_use_readonly" ]; then
 	   debug_mesg "Setting device read-only"
-	   chzdev ${CCW_CHAN_ID} readonly=1
+	   chzdev ${CCW_CHAN_ID} -q readonly=1
 	fi
     fi # if [ "$ONLINE" -eq 1 ]
-
-    #run chzdev
-    chzdev $CCW_CHAN_ID ${_opts}
 
     # Wait until udev is settled
     [ -x /sbin/udevadm ] && /sbin/udevadm settle --timeout=30
