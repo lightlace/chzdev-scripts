@@ -42,13 +42,14 @@ mesg () {
     echo "$@"
 }
 
-map_chzdev_return() {
+exit_on_err() {
 	if [ "$2" == "online" ]; then
 	    _state=10
 	else
 	    _state=11
 	fi
 	case "$1" in
+      0) return 0 ;;
 	    5) exit 6 ;;
 	    21) exit 7 ;;
 	    28) exit 8 ;;
@@ -190,15 +191,15 @@ QETH_DATA_CHAN=$(echo ${QETH_DATA_CHAN} | tr "[A-Z]" "[a-z]")
 
 debug_mesg "Configuring QETH device ${QETH_READ_CHAN}/${QETH_WRITE_CHAN}/${QETH_DATA_CHAN}"
 
-if test ! -d "$_ccw_dir/$QETH_READ_CHAN" ; then
+if test ! -d "$_ccw_dir/$QETH_READ_CHAN" ; then #to be replaced
     mesg "No device ${QETH_READ_CHAN}"
     exit 3
 fi
-if test ! -d "$_ccw_dir/$QETH_WRITE_CHAN" ; then
+if test ! -d "$_ccw_dir/$QETH_WRITE_CHAN" ; then #to be replaced
     mesg "No device ${QETH_WRITE_CHAN}"
     exit 4
 fi
-if test ! -d "$_ccw_dir/$QETH_DATA_CHAN" ; then
+if test ! -d "$_ccw_dir/$QETH_DATA_CHAN" ; then #to be replaced
     mesg "No device ${QETH_DATA_CHAN}"
     exit 5
 fi
@@ -224,7 +225,7 @@ if [ "$ONLINE" -eq 1 ]; then
 	    _opts="${_opts} portname=$QETH_PORTNAME"
 	fi
 	# Activate Layer2 support
-	if [ -w "$_ccwgroup_dir/layer2" ] ; then
+	if [ -w "$_ccwgroup_dir/layer2" ] ; then #to be replaced
 	    if [ "$QETH_LAYER2_SUPPORT" = "1" ]; then
 		mesg "(Layer2) "
 		_opts="${_opts} layer2=1"
@@ -238,7 +239,7 @@ if [ "$ONLINE" -eq 1 ]; then
 	    fi
 	fi
 	# Relative port number
-	if [ -w "$_ccwgroup_dir/portno" ] ; then
+	if [ -w "$_ccwgroup_dir/portno" ] ; then #to be replaced
 	    if [ -n "$QETH_PORTNO" ]; then
 	        mesg "(Port $QETH_PORTNO) "
 	        # This may fail, but trial and error is the only way to tell.
@@ -263,8 +264,7 @@ else
 	debug_mesg "Setting device offline"
 	#echo "$ONLINE" > $_ccwgroup_dir/online
 	chzdev --disable $QETH_READ_CHAN:$QETH_WRITE_CHAN:$QETH_DATA_CHAN ${_opts}
-	_ret=$?
-	map_chzdev_return $_ret offline
+	exit_on_err $? offline
     fi
 fi
 
