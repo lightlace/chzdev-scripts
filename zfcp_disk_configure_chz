@@ -78,7 +78,7 @@ if [ -z "$ONLINE" ] || [ "$ONLINE" -ne "1" -a "$ONLINE" -ne "0" ]; then
     exit 2
 fi
 
-_ccw_dir=${SYSFS}/bus/ccw/devices
+_ccw_dir=/sys/bus/ccw/devices
 
 _zfcp_dir="$_ccw_dir/$CCW_CHAN_ID"
 
