@@ -43,6 +43,16 @@ mesg () {
     echo "$@"
 }
 
+exit_on_err() {
+	if [ "$2" == "online" ] || [ "$2" == "offline" ]; then
+	    _state="5"
+	fi
+	case "$1" in
+      0) return 0 ;;
+	    *) exit $_state ;;
+	esac
+}
+
 debug_mesg () {
     case "$DEBUG" in
         yes) mesg "$@" ;;
@@ -87,23 +97,13 @@ fi
 _ccw_dir=/sys/bus/ccw/devices
 _zfcp_dir="$_ccw_dir/$CCW_CHAN_ID"
 
-if test ! -d "$_zfcp_dir" ; then
+if test ! -d "$_zfcp_dir" ; then #to be replaced
     mesg "No device ${CCW_CHAN_ID}"
     exit 3
 fi
 
-# Check whether we need to load the zfcp module
-if test ! -d "/sys/bus/ccw/drivers/zfcp"; then
-    modprobe ${MODULE}
-    # Re-check whether module loading has succeeded
-    if test ! -d "/sys/bus/ccw/drivers/zfcp"; then
-	     mesg "Could not load module ${MODULE}"
-	     exit 4
-    fi
-fi
-
 # Check whether we need to do something
-_zfcp_dev_status=$(cat $_zfcp_dir/online)
+_zfcp_dev_status=$(cat $_zfcp_dir/online) #to be replaced
 if [ "$_zfcp_dev_status" -eq "$ONLINE" ]; then
     debug_mesg "zFCP adapter ${CCW_CHAN_ID} already in status ${ONLINE}"
     ALREADY_ONLINE=1
@@ -114,48 +114,50 @@ debug_mesg "Configuring device ${CCW_CHAN_ID}"
 if [ "$ONLINE" -eq "1" ]; then
     if [ "${ALREADY_ONLINE}" -eq "0" ]; then
 	# Activate the device
-	chzdev zfcp-host ${CCW_CHAN_ID} online=1
+	chzdev --enable zfcp-host ${CCW_CHAN_ID}
 
 	# Now wait for the adapter to initialize
 	/sbin/udevadm settle
     fi
 
     for loop in 1 2 3 4 5 ; do
-	read status < /sys/bus/ccw/devices/$CCW_CHAN_ID/status
+	read status < /sys/bus/ccw/devices/$CCW_CHAN_ID/status #to be replaced
 	(( $status & 0x10000000 )) && break;
     done
-    read wwpn_status < /sys/bus/ccw/devices/$CCW_CHAN_ID/status
+    read wwpn_status < /sys/bus/ccw/devices/$CCW_CHAN_ID/status #to be replaced
     if !(( $wwpn_status & 0x10000000 )) ; then
-	chzdev zfcp-host ${CCW_CHAN_ID} online=0
+	chzdev --disable zfcp-host ${CCW_CHAN_ID}
 	mesg "Could not activate adapter, status $wwpn_status"
 	exit 5
     fi
 
     add_channel_for_cio "${CCW_CHAN_ID}"
     # Check whether we need to do something
-    read allow_lun_scan < /sys/module/zfcp/parameters/allow_lun_scan
+    read allow_lun_scan < /sys/module/zfcp/parameters/allow_lun_scan #to be replaced
     if [ "$allow_lun_scan" = "Y" ] ; then
 	for host in ${_zfcp_dir}/host* ; do
 	    [ -d $host ] || continue
 	    hba_num=${host##*host}
 	done
 	# Automatic LUN scan is only possible on NPIV ports
-	read port_type < /sys/class/fc_host/host${hba_num}/port_type
+	read port_type < /sys/class/fc_host/host${hba_num}/port_type #to be replaced
 	if [ "$port_type" = "NPIV VPORT" ] ; then
 	    exit 10;
 	fi
     fi
 else
-    chzdev zfcp-host ${CCW_CHAN_ID} online=0
+    chzdev --disable zfcp-host ${CCW_CHAN_ID}
     # Re-read to check whether we have succeeded
-    _ccw_dev_status=$(cat $_zfcp_dir/online)
+    _ccw_dev_status=$(cat $_zfcp_dir/online) #to be replaced
     if [ "$_ccw_dev_status" -ne "$ONLINE" ]; then
 	mesg "Could not change status of device ${CCW_CHAN_ID} to $ONLINE"
 	exit 5
     fi
-    echo "${CCW_CHAN_ID}" > /sys/bus/ccw/drivers/zfcp/unbind
-    echo "${CCW_CHAN_ID}" > /sys/bus/ccw/drivers/zfcp/bind
+    echo "${CCW_CHAN_ID}" > /sys/bus/ccw/drivers/zfcp/unbind #to be replaced
+    echo "${CCW_CHAN_ID}" > /sys/bus/ccw/drivers/zfcp/bind #to be replaced
     remove_channel_for_cio "${CCW_CHAN_ID}"
 
     debug_mesg "zFCP adapter at ${CCW_CHAN_ID} deactivated"
 fi
+
+exit 0
