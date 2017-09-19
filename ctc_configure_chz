@@ -111,14 +111,13 @@ _ccw_dir=/sys/bus/ccw/devices
 
 debug_mesg "Configuring CTC/LCS device ${CTC_READ_CHAN}/${CTC_WRITE_CHAN}"
 
-
-if ! lszdev $CTC_READ_CHAN ; then
-    mesg "device $_ccw_dir/$CTC_READ_CHAN does not exist"
-    exit 3
+if test ! -d "$_ccw_dir/$CTC_READ_CHAN" ; then #to be replaced
+      mesg "device $_ccw_dir/$CTC_READ_CHAN does not exist"
+      exit 3
 fi
-if ! lszdev $CTC_WRITE_CHAN ; then
-    mesg "device $_ccw_dir/$CTC_WRITE_CHAN does not exist"
-    exit 4
+if test ! -d "$_ccw_dir/$CTC_WRITE_CHAN" ; then #to be replaced
+      mesg "device $_ccw_dir/$CTC_WRITE_CHAN does not exist"
+      exit 4
 fi
 
 CCW_CHAN_GROUP= #to be replaced
