@@ -172,17 +172,6 @@ fi
 
 _ccw_groupdir=/sys/bus/ccwgroup
 
-# Check for modules
-if test ! -d "${_ccw_groupdir}/drivers/${CCW_CHAN_GROUP}" ; then #to be replaced
-    /sbin/modprobe $CCW_CHAN_GROUP
-
-    # Re-check whether module loading has succeeded
-    if test ! -d "${_ccw_groupdir}/drivers/${CCW_CHAN_GROUP}"; then #to be replaced
-	mesg "Could not load module ${CCW_CHAN_GROUP}"
-	exit 7
-    fi
-fi
-
 # Check for grouping
 _ccw_status_dir=
 if [ -e ${_ccw_dir}/${CTC_READ_CHAN}/group_device ] ; then #to be replaced
