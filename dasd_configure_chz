@@ -201,7 +201,7 @@ if [ $DASD_FORCE -eq 0 ]; then
 
     if [ "$ONLINE" -eq 1 ]; then
 	# Check whether we need to do something
-	read _ccw_use_diag < $_ccw_status_dir/use_diag
+	_ccw_use_diag=$(lszdev ${CCW_CHAN_ID} -i | grep "use_diag" | grep -o '[0-9]*' | head -1)
 	if [ "$_ccw_use_diag" -ne "$USE_DIAG" ] &&
 	    [ "$_ccw_dev_status" -eq 1 ] ; then
 	    # We need to change the DIAG access mode
