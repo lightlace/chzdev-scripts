@@ -103,7 +103,7 @@ if test ! -d "$_zfcp_dir" ; then #to be replaced
 fi
 
 # Check whether we need to do something
-_zfcp_dev_status=$(cat $_zfcp_dir/online) #to be replaced
+_zfcp_dev_status=$(lszdev ${CCW_CHAN_ID} -i | grep online | grep -o '[0-9]*' | head -1)
 if [ "$_zfcp_dev_status" -eq "$ONLINE" ]; then
     debug_mesg "zFCP adapter ${CCW_CHAN_ID} already in status ${ONLINE}"
     ALREADY_ONLINE=1
@@ -148,7 +148,7 @@ if [ "$ONLINE" -eq "1" ]; then
 else
     chzdev --disable zfcp-host ${CCW_CHAN_ID}
     # Re-read to check whether we have succeeded
-    _ccw_dev_status=$(cat $_zfcp_dir/online) #to be replaced
+    _zfcp_dev_status=$(lszdev ${CCW_CHAN_ID} -i | grep online | grep -o '[0-9]*' | head -1)
     if [ "$_ccw_dev_status" -ne "$ONLINE" ]; then
 	mesg "Could not change status of device ${CCW_CHAN_ID} to $ONLINE"
 	exit 5
